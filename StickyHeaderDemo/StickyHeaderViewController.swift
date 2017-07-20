@@ -10,13 +10,20 @@ import UIKit
 
 class StickyHeaderViewController: UIViewController {
 
-    fileprivate var scrollOffset: CGPoint = .zero
-    fileprivate var scrollView: UIScrollView?
-    fileprivate var currentConstant: CGFloat = 0
+    fileprivate var currentScrollOffset: CGPoint = .zero
     
-    @IBOutlet var headerOffsetConstrant: NSLayoutConstraint? {
+    @IBOutlet var headerOffsetConstrant: NSLayoutConstraint?
+    @IBOutlet var scrollView: UIScrollView? {
         didSet {
-            self.currentConstant = headerOffsetConstrant?.constant ?? 0
+            oldValue?.removeObserver(self, forKeyPath: "contentOffset")
+            
+            scrollView?.setContentOffset(.zero, animated: false)
+            scrollView?.addObserver(self, forKeyPath: "contentOffset", options: .new, context: nil)
+            
+            UIView.animate(withDuration: 0.2) {
+                self.headerOffsetConstrant?.constant = self.headerMaxOffset
+                self.view.layoutIfNeeded()
+            }
         }
     }
     
@@ -37,51 +44,43 @@ class StickyHeaderViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-    func changeScrollableView(_ scrollView: UIScrollView) {
-        if let sc = self.scrollView {
-            sc.removeObserver(self, forKeyPath: "contentOffset")
-        }
-        
-        self.scrollOffset = scrollView.contentOffset
-        self.scrollView = scrollView
-        
-        scrollView.addObserver(self, forKeyPath: "contentOffset", options: .new, context: nil)
-    }
-    
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         
-        guard let constraint = headerOffsetConstrant else {
-            return
-        }
-        
-        guard let sc = self.scrollView,
-            let keyPath = keyPath,
-            let offset = sc.value(forKey: keyPath) as? CGPoint else {
-            return
-        }
-        
-        let move = offset.y - scrollOffset.y
-        
-        var constant = currentConstant - move
-        
-        if constant > headerMaxOffset {
-            constant = headerMaxOffset
-        }
-        
-        if constant < headerMinOffset {
-            constant = headerMinOffset
-        }
-
-        print(constant)
-        
-        constraint.constant = constant
-        
-        UIView.animate(withDuration: 0.15) {[weak self] () in
-            self?.view.layoutIfNeeded()
+        if let scrollView = object as? UIScrollView, keyPath == "contentOffset" {
+            self.contentOffsetDidUpdate(scrollView.contentOffset)
         }
     }
     
     deinit {
         self.scrollView?.removeObserver(self, forKeyPath: "contentOffset")
+    }
+    
+    private func contentOffsetDidUpdate(_ contentOffset: CGPoint) {
+        guard let constraint = headerOffsetConstrant, let scrollView = self.scrollView else {
+            return
+        }
+        
+        let o = scrollView.contentOffset.y
+        let h = scrollView.frame.height
+        let c = scrollView.contentSize.height
+        
+        guard scrollView.isDragging, o > 0, o + h <= c else {
+            return
+        }
+        
+        let move = contentOffset.y - currentScrollOffset.y
+        
+        self.currentScrollOffset = contentOffset
+        
+        var constant = constraint.constant - move
+
+        if constant > headerMaxOffset { constant = headerMaxOffset }
+        else if constant < headerMinOffset { constant = headerMinOffset }
+
+        constraint.constant = constant
+        
+        UIView.animate(withDuration: 0.15) { 
+            self.view.layoutIfNeeded()
+        }
     }
 }

@@ -31,7 +31,7 @@ class ViewController: StickyHeaderViewController {
     }()
     
     lazy var pages: [NumbersTableViewController] = {
-        return [NumbersTableViewController(count: 5), NumbersTableViewController(count: 20)]
+        return [NumbersTableViewController(count: 5), NumbersTableViewController(count: 100)]
     }()
     
     override func viewDidLoad() {
@@ -45,7 +45,7 @@ class ViewController: StickyHeaderViewController {
         self.pager.dataSource = self
         self.pager.setViewControllers([pages[0]], direction: .forward, animated: false)
         
-        self.changeScrollableView(pages[0].tableView)
+        self.scrollView = pages[0].tableView
         
         self.setupLayout()
     }
@@ -99,12 +99,13 @@ extension ViewController: UIPageViewControllerDelegate, UIPageViewControllerData
         return nil
     }
     
-    func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+    func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) {
         
-        guard let vc = pageViewController.viewControllers?.first as? NumbersTableViewController else {
+        guard let vc = pendingViewControllers.first as? NumbersTableViewController else {
             return
         }
         
-        self.changeScrollableView(vc.tableView)
+        self.scrollView = vc.tableView
     }
+    
 }
