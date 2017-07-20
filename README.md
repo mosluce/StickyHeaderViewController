@@ -1,5 +1,3 @@
 # StickyHeaderViewController
 ---
-
-## 已知BUG
-1. 切換ScrollView時，未重置Offset導致之後捲動時無法完整收合
+基於 [線上 Swift 讀書會](https://www.facebook.com/groups/238948643131478) 內的問題，試著解看看順便練習一下KVO的使用方法。
